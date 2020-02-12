@@ -1,7 +1,4 @@
-// code away!
-const express = require("express")
+// // code away!
+const server = require("./server");
 
-const server = express();
-
-
-server.listen(5000, () => console.log(`server listening on port: 5000`))
+server.listen(5000, () => console.log(`server active on port: 5000`))
