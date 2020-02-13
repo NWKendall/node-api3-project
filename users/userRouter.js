@@ -1,30 +1,26 @@
 const express = require('express');
 const userData = require("./userDb");
+const postData = require("../posts/postDb")
 
 const router = express.Router();
 
-router.post('/', (req, res) => {
-  // do your magic!
-  !req.body.name
-  ? res.status(400).json({ error: "Please include a name"})
-  : userData.insert(req.body)
-    .then(({id}) => {
-        userData.getById(id)
-        .then(newUser => {
-          res.status(201).json(newUser)
-        })
-        .catch(err => {
-          console.log(`this is error from findById`, err)
-          res.status(500).json({ error: "Creating new user FAILED" })
-        }) 
-      }) 
-    .catch(err => {
-      console.log(`this is error from findById`, err)
-      res.status(500).json({ error: "Creating new user FAILED" })
-    })  
+router.post('/', validateUser, (req, res) => {
+  // do your magic! ✔
+  const { body } = req;
+  console.log(body)
+
+  userData.insert(body)
+      .then(newUser => {          
+            res.status(200).json(newUser)
+          })
+      .catch(err => {
+        console.log(`this is error from new user post`)
+        res.status(500).json({ error: "Creating new user FAILED" })
+      })  
+             
 })
 
-router.post('/:id/posts', (req, res) => {
+router.post('/:id/posts', validatePost, (req, res) => {
   // do your magic!
 });
 
@@ -41,26 +37,27 @@ router.get('/', (req, res) => {
   
 });
 
-router.get('/:id',  validateUserId("Nic"), (req, res) => {
-  // gets individual user ✅
-  const { id } = req.params;
-  userData.getById(id)
-  .then(user => {
-    !user
-      ? res.status(404).json({ error: "No user by this id exists"})
-      : res.status(200).json(user)
-  })
-  .catch(err => {
-    console.log(err)
-    res.status(500).json({ error: "Server Error"})
-  })
+router.get('/:id', validateUserId, (req, res) => {
+    //gets individual user 
+    const { id } = req.params;
+    userData
+      .getById(id)
+      .then(user => {
+        !user
+          ? res.status(404).json({ error: "No user by this id exists"})
+          : res.status(200).json(user)
+      })
+      .catch(err => {
+        console.log(err)
+        res.status(500).json({ error: "Server Error"})
+      })
 });
 
-router.get('/:id/posts', validateUserId("Nic"), (req, res) => {
-  // gets all user's posts ✅
+router.get('/:id/posts', validatePost, (req, res) => {
+  // gets all user's posts 
   const { id } = req.params;
 
-  userData.getById(id)
+  postData.getById(id)
   .then(user => {
     !user
       ? res.status(404).json({ error: "No user by this id exists"})
@@ -81,8 +78,8 @@ router.get('/:id/posts', validateUserId("Nic"), (req, res) => {
     })  
 });
 
-router.delete('/:id', (req, res) => {
-  // deletes user! ✅
+router.delete('/:id', validateUserId, (req, res) => {
+  // deletes user! test with middleware
   const { id } = req.params;
   userData.remove(id)
   .then(user => {
@@ -108,31 +105,33 @@ router.put('/:id', (req, res) => {
 
 //custom middleware
 
-function validateUserId(user){
-  // validates all routes that require an ID
-  console.log(`this is validateUserId`, user)
-  return (req, res, next) => {
-    const userId = req.headers.user;
+function validateUserId(req, res, next){
+  // validates all routes that require an ID  
+  const { id } = req.params;
 
-    userId && userId.toLowerCase() === user.toLowerCase()  
-      ? res.status(202) & next()
-      : res.status(400).json({ message: "invalid user id" });
-  }
+  !id || isNaN(parseInt(id)) ?
+    res.status(400).json({ message: "invalid user id" }) : next()  
 }
 
 function validateUser(req, res, next) {
-  // validates all POST requests for new user (not post)
-  const resBody = req.body
-
-  !resBody 
-    ? res.status(400).json({ message: "missing user data" })
-    : !resBody.name 
-      ? res.status(400).json({ message: "missing required text field" })
-      : next();
+  // validates all POST requests for new user (not post)  
+  const { body } = req
+  !body ? res.status(400).json({ message: "missing user data" }) :
+  !body.name ? res.status(400).json({ message: "missing required name field" }) : 
+  next();
+ 
 }
 
 function validatePost(req, res, next) {
   // validates all POST requests for new post (not user)
+  const { body } = req;
+  !body ? res.status(400).json({ message: "missing user data" }) :
+    !body.text ? res.status(400).json({ message: "missing required name field" })
+    : next();
+
+
+
+
 }
 
 module.exports = router;
