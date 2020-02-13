@@ -129,7 +129,7 @@ function validateUserId(req, res, next){
 function validateUser(req, res, next) {
   // validates all POST requests for new user (not new user posts)  
   const { body } = req;
-  !body || isNaN(parseInt(body))? 
+  !body? 
   res.status(400).json({ message: "missing user data" }) :
   !body.name ? res.status(400).json({ message: "missing required name field" }) : 
   next();
