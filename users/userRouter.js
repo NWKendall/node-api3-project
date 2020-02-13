@@ -7,22 +7,18 @@ const router = express.Router();
 router.post('/', validateUser, (req, res) => {
   // do your magic! ✔
   const { body } = req;
-  console.log(body)
+  console.log(`from user post`, body)
 
-  userData.insert(body)
-      .then(newUser => {          
-            res.status(200).json(newUser)
-          })
-      .catch(err => {
-        console.log(`this is error from new user post`)
-        res.status(500).json({ error: "Creating new user FAILED" })
-      })  
-             
+  userData
+    .insert(body)
+    .then(newUser => {          
+          res.status(201).json(newUser)
+        })
+    .catch(err => {
+      console.log(`this is error from new user post`, err)
+      res.status(500).json({ error: "Creating new user FAILED" })
+    })               
 })
-
-router.post('/:id/posts', validatePost, (req, res) => {
-  // do your magic!
-});
 
 router.get('/', (req, res) => { 
   // gets all users✅
@@ -38,7 +34,7 @@ router.get('/', (req, res) => {
 });
 
 router.get('/:id', validateUserId, (req, res) => {
-    //gets individual user 
+    //gets individual user ✔
     const { id } = req.params;
     userData
       .getById(id)
@@ -53,48 +49,65 @@ router.get('/:id', validateUserId, (req, res) => {
       })
 });
 
-router.get('/:id/posts', validatePost, (req, res) => {
-  // gets all user's posts 
+router.delete('/:id', validateUserId, (req, res) => {
+  // deletes user! test with middleware ✔
+  
   const { id } = req.params;
+  console.log(req.params)
 
-  postData.getById(id)
-  .then(user => {
-    !user
-      ? res.status(404).json({ error: "No user by this id exists"})
-      : userData.getUserPosts(id)
-        .then(post => {
-          !post
-            ? res.status(404).json({ error: "No post by this id exists"})
-            : res.status(200).json(post)
-        })
-        .catch(err => {
-          console.log(err)
-          res.status(500).json({ error: "Server Error 1"})
-        })
+  userData
+    .remove(id)
+    .then(user => {
+      res.status(200).json(user)
     })
     .catch(err => {
       console.log(err)
-      res.status(500).json({ error: "Server Error getting user's posts" })
-    })  
-});
-
-router.delete('/:id', validateUserId, (req, res) => {
-  // deletes user! test with middleware
-  const { id } = req.params;
-  userData.remove(id)
-  .then(user => {
-    !user
-    ? res.status(404).json({ error: "No user by this id exists"})
-    : res.status(204).json(user)
-  })
-  .catch(err => {
-      console.log(err)
-      res.status(500).json({ error: "Server Error Deleting"})
-  });
+      res.status(500).json({ error: "Server Error"})
+    })
 })
 
-router.put('/:id', (req, res) => {
+router.get('/:id/posts', (req, res) => {
+  // Get all of an individual user's posts
+  
+  const { id } = req.params;
+  const post = { ...req.body, user_id: id };
+
+  userData
+    .getUserPosts(post.user_id)
+    .then(posts => {
+      console.log(`post2`, posts)
+      !post ?
+        res.status(404).json({ error: "no posts for this user exist"}) :      
+        res.status(200).json(posts)      
+    })
+    .catch(err => {
+      console.log(err)
+      res.status(500).json({ message: "WTF!"})
+    })      
+});
+
+// TO DO!
+router.post('/:id/posts', validatePost, (req, res) => {
+  // user creates a new post
+
+  
+});
+
+router.put('/:id', validateUserId, validateUser, (req, res) => {
   // do your magic!
+  console.log(`req body 1`,req.body)
+  const { id } = req.params;
+
+  userData
+    .update(id, req.body)
+    .then(edit => {
+      console.log(`edit 2`, edit)
+      res.status(202).json(edit)
+    })
+    .catch(err => {
+      console.log(err)
+      res.status(500).json({ error: "The post information could not be modified." })
+    })
 });
 
 
@@ -114,24 +127,25 @@ function validateUserId(req, res, next){
 }
 
 function validateUser(req, res, next) {
-  // validates all POST requests for new user (not post)  
-  const { body } = req
-  !body ? res.status(400).json({ message: "missing user data" }) :
+  // validates all POST requests for new user (not new user posts)  
+  const { body } = req;
+  !body || isNaN(parseInt(body))? 
+  res.status(400).json({ message: "missing user data" }) :
   !body.name ? res.status(400).json({ message: "missing required name field" }) : 
   next();
  
 }
 
 function validatePost(req, res, next) {
-  // validates all POST requests for new post (not user)
-  const { body } = req;
-  !body ? res.status(400).json({ message: "missing user data" }) :
-    !body.text ? res.status(400).json({ message: "missing required name field" })
+  // validates all POST requests for new post (not new user)
+  const { id } = req.params;
+  const post = { ...req.body, user_id: id };  
+
+  !post ? 
+    res.status(400).json({ message: "missing user data" }) 
+    : !post.text 
+    ? res.status(400).json({ message: "missing required text field" })
     : next();
-
-
-
-
 }
 
 module.exports = router;
