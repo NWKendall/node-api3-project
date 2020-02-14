@@ -66,7 +66,7 @@ router.delete('/:id', validateUserId, (req, res) => {
     })
 })
 
-router.get('/:id/posts', (req, res) => {
+router.get('/:id/posts', validateUserId, (req, res) => {
   // Get all of an individual user's posts
   
   const { id } = req.params;
@@ -98,11 +98,9 @@ router.put('/:id', validateUserId, validateUser, (req, res) => {
     })
     .catch(err => {
       console.log(err)
-      res.status(500).json({ error: "The post information could not be modified." })
+      res.status(500).json({ error: "The user information could not be modified." })
     })
 });
-
-
 
 // TO DO!
 router.post('/:id/posts', validatePost, (req, res) => {

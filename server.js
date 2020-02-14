@@ -3,6 +3,7 @@ const helmet = require("helmet");
 const morgan = require("morgan")
 
 const userRouter = require("./users/userRouter");
+const postRouter = require("./posts/postRouter");
 
 const server = express();
 server.use(express.json());
@@ -17,6 +18,8 @@ server.get('/', logger, (req, res) => {
 });
 
 server.use("/users", userRouter);
+server.use("/posts", postRouter);
+
 
 //custom middleware
 function logger(req, res, next) {
